@@ -14,7 +14,7 @@ from . import joint_state as JS, switching as SW, opportunity as OP, null_test a
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-CFG_PATH = os.path.join(ROOT, "config", "math-momentum-v1.0.0.json")
+CFG_PATH = os.path.join(ROOT, "config", "math-momentum-v1.0.1.json")
 DAY = 86_400_000
 
 
@@ -112,7 +112,7 @@ def main(argv=None):
     cutoff = completed_block_cutoff(run_started); cutoff_ms = to_ms(cutoff)
     grace = cfg["timestamp_safety"]["knowledge_grace_s"]
     knowledge = cutoff + dt.timedelta(seconds=grace); knowledge_iso = iso(knowledge)
-    run_id = "MM-" + cutoff.astimezone(TZ).strftime("%Y%m%d-%H%M") + "-v1.0.0"
+    run_id = "MM-" + cutoff.astimezone(TZ).strftime("%Y%m%d-%H%M") + "-v1.0.1"
 
     shadow = None
     if not a.dry_run:

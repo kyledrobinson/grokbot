@@ -1,0 +1,48 @@
+{
+  "config_version": "morning-tags-v1.0.0",
+  "purpose": "Logged CONTEXT LABELS only. Never an entry rule, gate, sizing input or filter for Captain v3 or math-momentum. Paper/research only.",
+  "source_db": "/workspace/captain-v3/captain.db",
+  "math_momentum_db": "/workspace/captain-v3/research/math_momentum/shadow.db",
+  "tags_db": "/workspace/captain-v3/research/morning_tags/tags.db",
+  "timezone": "America/Toronto",
+  "markets": {
+    "BTC": {"provider": "binance_spot", "symbol": "BTCUSDT"},
+    "ETH": {"provider": "binance_spot", "symbol": "ETHUSDT"},
+    "SOL": {"provider": "binance_spot", "symbol": "SOLUSDT"}
+  },
+  "market_order": ["BTC", "ETH", "SOL"],
+  "received_allowance_s": 60,
+  "float_tolerance_rel": 1e-09,
+  "candle_6am": {
+    "window_start": "02:00",
+    "window_end": "06:00",
+    "build_from": "binance native 1m (all 240 bars required); fallback for pre-1m history: 4 binance native 1h bars (source labelled)",
+    "clean_max_opposing_wick_frac": 0.25,
+    "clean_min_body_frac": 0.50,
+    "opposing_wick_definition": "up candle -> upper wick; down candle -> lower wick (the wick pointing against the candle's direction)",
+    "range_median_days": 20,
+    "range_median_min_days": 10
+  },
+  "session_profile": {
+    "asia_start_prev_day": "18:00",
+    "asia_end": "02:00",
+    "london_start": "02:00",
+    "london_end": "06:00",
+    "day_type_mapping": "per the source post: London reversed Asia -> 'continuation_day' (trade London's direction); London did not reverse -> 'reversal_day'"
+  },
+  "fvg": {
+    "timeframe": "1h",
+    "formation_window": "third candle starts within the prior calendar day (00:00-24:00 ET of D-1)",
+    "min_gap_pct": 0.05,
+    "fill_rule": "full: bullish gap filled once any later 1h low <= gap bottom; bearish once any later 1h high >= gap top (checked through 06:00 ET of D)",
+    "atr_period": 14,
+    "atr_seed_bars": 42
+  },
+  "cross_asset": {
+    "overnight_start": "00:00",
+    "overnight_end": "06:00",
+    "overnight_bars": "Captain v3 primary 15m agg_1m bars, 00:00-06:00 ET, all required (same ONH/ONL as v3)",
+    "window": "previous, trigger and next 15m bar around the event (+/-15 min); next bar makes the full label known at event+15m",
+    "beyond_rule": "up: bar high > ONH*(1+tol); down: bar low < ONL*(1-tol)"
+  }
+}
