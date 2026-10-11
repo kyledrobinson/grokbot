@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Start the captain-v3 scheduler if it is not running (singleton via flock inside the process).
+# There is no cron/systemd on this box, so NOTHING calls this automatically after a reboot.
+cd "$(dirname "$0")/.."
+mkdir -p logs state
+if [ -f state/scheduler-heartbeat.json ] && kill -0 "$(python3 -c 'import json;print(json.load(open("state/scheduler-heartbeat.json"))["pid"])')" 2>/dev/null; then
+  echo "scheduler already running"; exit 0
+fi
+setsid nohup ./bin/captain scheduler >> logs/scheduler.stdout 2>&1 < /dev/null &
+sleep 5
+cat state/scheduler-heartbeat.json 2>/dev/null; echo

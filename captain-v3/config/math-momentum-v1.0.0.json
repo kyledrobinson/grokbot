@@ -1,0 +1,149 @@
+{
+  "config_version": "math-momentum-v1.0.0",
+  "spec": "research/math-momentum-structures-v1.md (Math-inspired uphill momentum structures v1.1, reevaluated 2026-10-08)",
+  "status": "SHADOW RESEARCH ONLY. Never read by Captain v3.1.1. Never places orders. Results never affect official v3 entries or sizing.",
+  "frozen_at": "first run; any change requires math-momentum-v1.0.1+",
+  "timezone": "America/Toronto",
+  "markets": {"BTC": "BTCUSDT", "ETH": "ETHUSDT", "SOL": "SOLUSDT"},
+  "primary_provider": "binance_spot",
+  "secondary_provider": "coinbase_exchange",
+  "secondary_symbols": {"BTC": "BTC-USD", "ETH": "ETH-USD", "SOL": "SOL-USD"},
+  "timestamp_safety": {
+    "cutoff_rule": "most recently completed 15-minute block (America/Toronto) at run time",
+    "event_rule": "candle_end_ms <= cutoff",
+    "knowledge_rule": "received_ts <= cutoff + knowledge_grace_s (a bar that closes exactly at the cutoff is physically received a few seconds later; grace = v3.1.1 data_gates.expected_bar_grace_s)",
+    "knowledge_grace_s": 60,
+    "labels_rule": "training/calibration labels must resolve at or before the cutoff; embargo between train end and each test fold >= horizon",
+    "embargo_15m_minutes": 15,
+    "no_backfill": "a cutoff already recorded in shadow.db is never re-run; missed blocks are not run retroactively"
+  },
+  "features": {
+    "vector": ["r15m", "r1h", "r4h", "dEMA50_1h", "dVWAP", "volRatio", "ATRrank", "relBTC_1h", "relBTC_24h"],
+    "raw_feature_count": 9,
+    "orientation": "Directional features are bullish-positive as is. volRatio and ATRrank are not directional: inside the Uphill score they are signed by the current move (volRatio_s = sign(r15m)*ln(volRatio), ATRrank_s = (rank-0.5)*sign(r1h)); the probability models use them unsigned (ln(volRatio), rank-0.5). relBTC features are identically 0 for BTC.",
+    "returns": "log returns of primary 15m closes (15m aggregated from complete 1m bars)",
+    "ema": {"period": 50, "timeframe": "1h", "slope_lookback_bars": 3, "seed": "SMA (same as captain.indicators.ema)", "context_label_period_2": 200},
+    "vwap": "typical-price VWAP of primary 1m bars from 00:00 Toronto of the block's date through block end",
+    "volume_ratio_trailing_bars": 20,
+    "atr": {"period": 14, "timeframe": "15m", "smoothing": "wilder"},
+    "atr_rank_trailing_bars": 672,
+    "atr_rank_min_bars": 192,
+    "normalization": "per-asset median and 1.4826*MAD fitted only on the training window; z winsorized at +/-3; MAD==0 -> z=0",
+    "winsor_z": 3.0
+  },
+  "uphill": {
+    "weights": "equal (preregistered baseline)",
+    "slope_k_blocks": 4,
+    "theta_U_quantile": 0.80,
+    "theta_S_quantile": 0.80,
+    "short_quantile": 0.20,
+    "trend_filter": "long requires dEMA50_1h >= 0 (1h trend not down); short requires dEMA50_1h <= 0"
+  },
+  "persistence": {
+    "horizons_blocks": {"15m": 1, "30m": 2, "1h": 4, "2h": 8, "4h": 16},
+    "weights": "equal",
+    "sigma": "sigma_h = std of 15m log returns over trailing 672 blocks (strictly before t) * sqrt(h)",
+    "agreement": "a_h = 1 if sign(r_h) == sign(dEMA50_1h) == sign(dVWAP), else 0",
+    "efficiency_H_blocks": 16,
+    "use": "context only (spec: not an entry gate until 100 resolved obs per bucket over 30 dates)"
+  },
+  "outcomes": {
+    "15m": {
+      "definition": "r = ln(close of next 15m block / close of cutoff block), primary provider. UP if r > +band, DOWN if r < -band, else RANGE.",
+      "band_pct": 0.25,
+      "band_rationale": "Cost-based: RANGE = a 15m move too small to pay a Jupiter 2x round trip. From the most recent stored real quote before freezing (QT-DC-20261010-1045-BTC-A-long-1: roundTripEstimateUsd 0.074408 on 49.89 notional = 0.149%) plus v3.1.1 modeled adverse slippage 5 bps per side (0.10%) = 0.249%, rounded to 0.25%."
+    },
+    "session_close": {
+      "definition": "r = close of the 11:00 Toronto 1h bar (= close of 11:59 1m) on the next session date whose 12:00 close is after the cutoff / close of the last completed 1h bar at or before the cutoff - 1. UP if r > +0.5%, DOWN if r < -0.5%, else RANGE (same 0.5% threshold as the v3.1.1 forecast definition).",
+      "threshold_pct": 0.5,
+      "model": "conditional frequency on sign of trailing 4h return (time-series momentum, 2 buckets), Laplace alpha=1, rolling 365 prior samples taken at the same Toronto clock hour; reported only, not used for the action"
+    }
+  },
+  "probability": {
+    "classes": ["UP", "RANGE", "DOWN"],
+    "main_model": "multinomial logistic regression, L2 ridge, on the 9-feature z vector plus per-asset intercepts, pooled BTC/ETH/SOL",
+    "ridge_lambda": 1.0,
+    "sub_models_for_disagreement": {
+      "price": ["r15m", "r1h", "r4h", "dEMA50_1h", "dVWAP"],
+      "regime": ["volRatio", "ATRrank", "ballistic_persistence"],
+      "relative": ["relBTC_1h", "relBTC_24h"],
+      "baseline": "per-asset Laplace(1) class frequency in the training window"
+    },
+    "disagreement": "D = mean over classes of the variance across the 4 sub-model probability vectors",
+    "walk_forward": "expanding window; test folds = the 10 consecutive 24h blocks ending at the cutoff; each fold trains (normalization, models) only on samples whose label resolved <= fold start - embargo",
+    "walk_forward_folds": 10,
+    "calibration": "temperature scaling; fold j uses a temperature fitted on out-of-fold predictions of folds < j (T=1 if fewer than 2); the live forecast uses T fitted on all out-of-fold predictions",
+    "margin_threshold": "theta_M = 0.75 quantile of out-of-fold calibrated margins",
+    "disagreement_threshold": "theta_D = 0.50 quantile of out-of-fold disagreements",
+    "prob_lcb_rule": "for the class backing the action (UP for LONG, DOWN for SHORT): Wilson 95% lower bound of the realized hit rate among out-of-fold calibrated predictions for that asset whose p_k is within +/-0.05 of the current p_k (min 30 obs) must exceed the asset's training base rate of that class",
+    "prob_lcb_window": 0.05,
+    "prob_lcb_min_obs": 30
+  },
+  "conformal": {
+    "method": "split conformal on out-of-fold calibrated class scores s = 1 - p(true class), most recent 7 folds (time-ordered, all strictly before the cutoff)",
+    "alpha": 0.10,
+    "calibration_folds": 7,
+    "coverage_check": "rolling: fold j's sets use the quantile from folds < j (j>=3); if observed coverage is below 1-alpha beyond its 95% binomial (Wilson) interval, conformal action permission is disabled"
+  },
+  "ev": {
+    "action_horizon": "15m",
+    "return_bins": "UP/RANGE/DOWN classes with per-asset conditional mean and SE of the 15m log return in each class over the training window, scaled by current ATR% / median training ATR%",
+    "collateral_usd": 25.0,
+    "leverage": 2.0,
+    "quote_collateral": "SOL",
+    "quote_slippage_bps": 200,
+    "hold_hours": 0.25,
+    "modeled_adverse_slippage_bps_per_side": 5,
+    "stress_close_multiplier": 2.0,
+    "stress_financing_multiplier": 3.0,
+    "gate_uses": "stressed costs (v3.1.1 stress multipliers)",
+    "z_lcb": 1.645,
+    "se_rule": "SE^2 = sum_k p_k^2 SE(m_k)^2 + (sum_k p_k m_k^2 - (sum_k p_k m_k)^2) / n_eff",
+    "quote_fallback": "if a live read-only quote fails, use the most recent stored real quote for that asset/side from captain.db quotes (read-only), label STALE, scale fee components to the live notional; never invent a cost"
+  },
+  "joint_state": {
+    "states": 27,
+    "one_position_limit": true,
+    "covariance": "15m log returns over the 672 blocks strictly before the cutoff; constant-correlation shrinkage delta=0.3; if any asset ATRrank > 0.8 correlations are stressed halfway toward 1",
+    "shrinkage_delta": 0.3,
+    "stress_atr_rank": 0.8,
+    "stress_toward_one": 0.5,
+    "lambda_var": 10.0,
+    "gamma_turnover": 0.0,
+    "gamma_note": "costs are already inside mu (net LCB per leg), so no extra turnover penalty",
+    "rho_tail": 0.5,
+    "tail_loss": "normal ES95 of the stressed portfolio 15m return = 2.0627 * sigma_p"
+  },
+  "opportunity": {
+    "Q": "LCB(EV) / (ES95_usd + stressed_costs_usd) * CalibrationQuality * DataQuality",
+    "calibration_quality": "clip(1 - ECE/0.10, 0, 1), ECE of out-of-fold calibrated top-class probability for that asset, 10 equal-width bins",
+    "data_quality": "1.0 all checks pass and live quote; 0.5 stale stored quote; 0 any data check fails"
+  },
+  "switching": {
+    "research_book_start": "FLAT (research book is separate from Captain v3 official trades and from Crypto Captain's paper ledger)",
+    "rule": "switch only if LCB(EV(a*)) - LCB(EV(current)) > C_switch_incremental + H_t",
+    "c_switch_note": "LCB(EV) is already net of round-trip stressed costs, so from FLAT the incremental switch cost is 0; switch_cost_usd reports the full round-trip cost for transparency",
+    "hysteresis_h0_frac_of_roundtrip": 0.10,
+    "hysteresis": "H_t = h0 * (1 + ATRrank + D/theta_D + recent_turnover_count)"
+  },
+  "risk": {
+    "research_equity_usd": 50.0,
+    "max_leverage": 2.0,
+    "max_open_positions": 1,
+    "max_planned_loss_pct_equity": 2.0,
+    "planned_stop": "1.0 * ATR14(15m) adverse",
+    "session_window": "v3.1.1 decision window 06:00-11:45 Toronto; outside it the research action is WAIT"
+  },
+  "gates_order": ["data_quality", "ev_lcb_positive", "conformal_singleton", "prob_above_lcb", "margin", "disagreement", "uphill_candidate", "risk", "switching"],
+  "absent_inputs": ["order_flow", "funding", "open_interest", "liquidations", "basis", "news", "whale"],
+  "diagnostics": {
+    "n_eff": "n / (1 + 2 sum_{k=1}^{K} rho_k) on time-ordered out-of-fold Brier errors per asset; K = first lag with rho_k <= 0 (max 96). Stability: fixed K in {16,48,96}; max/min > 1.5 -> INCONCLUSIVE",
+    "null_test": "fixed-margin permutation of predicted labels (holds row and column totals), statistic = accuracy, 2000 samples, seed 20261010",
+    "variants_tried": 1
+  },
+  "promotion_gates": {
+    "min_resolved_shadow_forecasts_per_asset": 250,
+    "min_session_dates_per_asset": 60,
+    "min_closed_paper_trades_for_sizing": 100
+  }
+}

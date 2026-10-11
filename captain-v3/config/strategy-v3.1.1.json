@@ -1,0 +1,242 @@
+{
+  "config_version": "v3.1.1",
+  "strategy_version": "cc3-setups-v1.0.0",
+  "frozen_at_utc": "2026-10-06T16:20:00Z",
+  "status": "FROZEN seed hypotheses (spec section 6). Not optimized. Changes require a new version file; applies only to future decisions. v3.1.1 extends measurement condition_labels only (volume, VWAP, EMA50/200 context tags); setups, forecast definition, risk and fill rules are byte-identical to v3.0.0/v3.1.0.",
+  "timezone": "America/Toronto",
+  "markets": {
+    "BTC": {
+      "primary": {
+        "provider": "binance_spot",
+        "symbol": "BTCUSDT",
+        "quote_ccy": "USDT"
+      },
+      "secondary": {
+        "provider": "coinbase_exchange",
+        "symbol": "BTC-USD",
+        "quote_ccy": "USD"
+      },
+      "jupiter_asset": "BTC"
+    },
+    "ETH": {
+      "primary": {
+        "provider": "binance_spot",
+        "symbol": "ETHUSDT",
+        "quote_ccy": "USDT"
+      },
+      "secondary": {
+        "provider": "coinbase_exchange",
+        "symbol": "ETH-USD",
+        "quote_ccy": "USD"
+      },
+      "jupiter_asset": "ETH"
+    },
+    "SOL": {
+      "primary": {
+        "provider": "binance_spot",
+        "symbol": "SOLUSDT",
+        "quote_ccy": "USDT"
+      },
+      "secondary": {
+        "provider": "coinbase_exchange",
+        "symbol": "SOL-USD",
+        "quote_ccy": "USD"
+      },
+      "jupiter_asset": "SOL"
+    }
+  },
+  "market_order": [
+    "BTC",
+    "ETH",
+    "SOL"
+  ],
+  "session": {
+    "overnight_start": "00:00",
+    "session_start": "06:00",
+    "session_end": "12:00",
+    "decision_first": "06:00",
+    "decision_last": "11:45",
+    "decision_step_min": 15
+  },
+  "data_gates": {
+    "max_latest_price_age_s": 60,
+    "expected_bar_grace_s": 60,
+    "no_missing_bars_in_lookback": true,
+    "provider_disagreement_tolerance_pct": 0.35,
+    "provider_disagreement_note": "Preregistered engineering default: Binance USDT vs Coinbase USD latest completed 1m close. USDT/USD basis is typically <0.1%; 0.35% leaves room for basis + 1m timing noise. To be validated from stored cross-check data before any pilot evaluation."
+  },
+  "indicators": {
+    "atr": {
+      "period": 14,
+      "timeframe": "15m",
+      "smoothing": "wilder",
+      "seed": "SMA of first 14 true ranges (first TR uses high-low)",
+      "warmup_bars_required": 100
+    },
+    "ema": {
+      "period": 50,
+      "timeframe": "1h",
+      "seed": "SMA of first 50 closes",
+      "warmup_bars_required": 150,
+      "slope_lookback_bars": 3
+    }
+  },
+  "setups": {
+    "A": {
+      "name": "overnight-breakout-continuation",
+      "version": "A-1.0.0",
+      "breakout_atr_mult": 0.1,
+      "stop_atr_mult": 0.5,
+      "target_r_mult": 2.0
+    },
+    "B": {
+      "name": "failed-overnight-breakout",
+      "version": "B-1.0.0",
+      "probe_atr_mult": 0.1,
+      "stop_buffer_atr_mult": 0.1,
+      "target_r_mult": 2.0
+    }
+  },
+  "float_tolerance_rel": 1e-09,
+  "forecast": {
+    "model_version": "fc-baseline-v1.0.0",
+    "classes": [
+      "UP",
+      "DOWN",
+      "RANGE"
+    ],
+    "definition": "Return r = close of 11:59 Toronto 1m candle / open of 06:00 Toronto 1m candle - 1, primary provider (binance_spot) per market. UP if r > +0.5%, DOWN if r < -0.5%, else RANGE. Equivalent on native 1h candles: open of 06:00 bar, close of 11:00 bar.",
+    "threshold_pct": 0.5,
+    "official_model": {
+      "id": "freq_rolling365_laplace1",
+      "window_sessions": 365,
+      "laplace_alpha": 1.0
+    },
+    "comparison_models": [
+      {
+        "id": "freq_expanding_laplace1",
+        "laplace_alpha": 1.0
+      },
+      {
+        "id": "prior_session_rule_onehot"
+      }
+    ],
+    "eligible_session_rule": "All six native 1h primary candles 06:00-11:00 Toronto present for the session date, session date strictly before the target date."
+  },
+  "risk": {
+    "initial_paper_capital_usd": 50.0,
+    "max_leverage": 2.0,
+    "min_leverage": 1.1,
+    "max_open_positions": 1,
+    "max_entries_per_day": 3,
+    "max_planned_loss_pct_equity": 2.0,
+    "daily_loss_lockout_pct": 5.0,
+    "winner_skim_pct_to_reserve": 50.0,
+    "min_collateral_usd": 10.0,
+    "max_collateral_usd": 25.0,
+    "collateral_note": "Jupiter minimum new-position collateral $10 (jup CLI docs). Cap $25 keeps quotes under the ~$38 SOL balance of the public quote wallet.",
+    "adverse_slippage_bps": 5,
+    "stress_financing_multiplier": 3.0,
+    "stress_close_multiplier": 2.0,
+    "legacy_stress_adverse_pct": 2.0
+  },
+  "fills": {
+    "latency_s": 5,
+    "slippage_bps": 5,
+    "entry_rule": "open of first primary 1m candle starting at or after decision commit time + latency, adverse slippage applied",
+    "stop_rule": "first 1m bar touching stop; fill at min(stop, bar open) for longs (max for shorts) with adverse slippage; stop-first if stop and target in same bar (flag AMBIGUOUS)",
+    "target_rule": "fill exactly at target, no improvement",
+    "noon_rule": "open of the 12:00 Toronto primary 1m candle with adverse slippage",
+    "missing_data_rule": "gap in 1m sequence -> UNRESOLVED until repaired"
+  },
+  "costs": {
+    "quote_tool": "/workspace/perps-fees/quote",
+    "borrow_tool": "/workspace/perps-fees/borrow",
+    "quote_collateral": "SOL",
+    "quote_slippage_bps": 200,
+    "modeled_open_fee_bps": 6,
+    "modeled_close_fee_bps": 6,
+    "modeled_impact_bps": 2,
+    "modeled_network_usd": 0.0025,
+    "experiment_label": "generic perpetual proxy priced with Binance spot; Jupiter quote costs attached. Not venue-ready performance."
+  },
+  "measurement": {
+    "version": "meas-v1.1.0",
+    "condition_labels": {
+      "version": "cond-v1.1.0",
+      "trend": {
+        "rule": "latest completed 1h close vs EMA50 and EMA50 slope (EMA50 minus EMA50 3 completed hourly bars earlier): TREND_UP if close>EMA and slope>0; TREND_DOWN if close<EMA and slope<0; else RANGE",
+        "slope_lookback_bars": 3
+      },
+      "volatility": {
+        "rule": "percentile rank of current ATR14(15m) among the previous trailing_bars ATR14 values (strictly earlier, completed bars); HIGH_VOL if rank>=50, else LOW_VOL; UNAVAILABLE if fewer than trailing_bars values",
+        "trailing_bars": 480,
+        "high_threshold_pct": 50
+      },
+      "frozen_at": "entry/signal time; never recomputed",
+      "volume": {
+        "rule": "15m trigger (signal) bar volume vs mean volume of the previous trailing_bars completed 15m bars (strictly earlier); volume_beats_avg true if candle > avg; ratio = candle/avg; UNAVAILABLE if insufficient contiguous bars",
+        "timeframe": "15m",
+        "trailing_bars": 20
+      },
+      "vwap": {
+        "rule": "Session VWAP from America/Toronto overnight_start (00:00) through signal bar end on primary 1m bars: sum(((H+L+C)/3)*V)/sum(V). price_vs_vwap = above|below|at vs 15m signal close (float_tolerance_rel). Intended context only: longs above / shorts below. Not a gate.",
+        "session_start_field": "overnight_start",
+        "price_source": "15m_signal_close"
+      },
+      "ema_trend": {
+        "rule": "Latest completed 1h close vs EMA50 and EMA200 (same EMA seed as indicators.ema). trend_50/trend_200 = above|below (float_tolerance_rel). Context tag only; does not change entry gates (gates still use EMA50 warmup + setup trend filters from v3.0.0).",
+        "timeframe": "1h",
+        "periods": [
+          50,
+          200
+        ],
+        "warmup_bars_required_200": 200
+      }
+    },
+    "r_multiple": {
+      "R_definition": "initial planned loss in USD at decision time (risk.planned_loss total at the quoted notional: stop distance + adverse slippage + open costs + stressed close costs + stressed financing). net_R = net PnL after all costs / R."
+    },
+    "excursions": {
+      "rule": "MAE/MFE from post-entry primary 1m bars only, starting with the entry bar (entry at its open). In the exit bar only the exit price counts (intrabar order unknown). NOON exits: exit bar excluded (exit at its open)."
+    },
+    "cost_multipliers": [
+      1.0,
+      1.5,
+      2.0,
+      3.0
+    ],
+    "cost_sensitivity_rule": "net_k = gross - k*(fees) - k*(financing) - (k-1)*(slippage already embedded in fills). fees = open/close fee, impact, network, collateral conversion.",
+    "bootstrap": {
+      "method": "block bootstrap by Toronto session date",
+      "resamples": 2000,
+      "seed": 20260926,
+      "ci": 0.9,
+      "min_trades": 20,
+      "min_blocks": 10
+    },
+    "calibration": {
+      "bins": [
+        0.0,
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0000001
+      ],
+      "interval": "Wilson 95%"
+    },
+    "descriptive_features": [
+      "SOL-BTC_1h",
+      "SOL-BTC_24h",
+      "ETH-BTC_1h",
+      "ETH-BTC_24h",
+      "whale_lean"
+    ],
+    "whale_lean": "null unless a reproducible timestamped feed with address-selection rule exists (none as of v3.1.0)",
+    "hypothetical_skips": {
+      "rule": "every SKIP decision on a triggered signal gets a prospective hypothetical committed atomically with the decision; same fill simulator; modeled costs (no quote); notional = modeled sizing notional, or $20 standardized if sizing failed (flagged)",
+      "standard_notional_usd": 20.0
+    }
+  }
+}
