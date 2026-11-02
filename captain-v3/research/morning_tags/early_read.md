@@ -2,49 +2,49 @@
 
 Net R after modeled/real fees. Any cell with n < 30 is INCONCLUSIVE. Tags are context labels only; nothing here changes any rule.
 
-## Captain v3 skipped signals (resolved hypothetical outcomes): 199 resolved
-(daily tags built from bars received on time ('live'): 51; event tags live: 182; the rest are reconstructed from backfilled bars)
+## Captain v3 skipped signals (resolved hypothetical outcomes): 215 resolved
+(daily tags built from bars received on time ('live'): 51; event tags live: 196; the rest are reconstructed from backfilled bars)
 
 | Group | Cell | n | Mean net R | Verdict |
 |---|---|---:|---:|---|
-| all | all resolved | 199 | -0.27R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
-| 6AM 4h candle | clean & aligned with signal | 22 | -0.05R | INCONCLUSIVE (n<30) |
+| all | all resolved | 215 | -0.30R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
+| 6AM 4h candle | clean & aligned with signal | 23 | -0.07R | INCONCLUSIVE (n<30) |
 | 6AM 4h candle | clean & opposed to signal | 32 | -0.60R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
-| 6AM 4h candle | not clean | 145 | -0.23R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
+| 6AM 4h candle | not clean | 160 | -0.28R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
 | 6AM 4h candle | no tag | 0 |  | INCONCLUSIVE (n<30) |
-| session profile | london_reversed_asia = true (continuation day) | 111 | -0.20R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
-| session profile | london_reversed_asia = false (reversal day) | 88 | -0.34R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
+| session profile | london_reversed_asia = true (continuation day) | 124 | -0.26R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
+| session profile | london_reversed_asia = false (reversal day) | 91 | -0.35R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
 | session profile | unlabelled (flat/missing) | 0 |  | INCONCLUSIVE (n<30) |
-| cross-asset (+/-15m) | all_confirm | 101 | -0.14R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
-| cross-asset (+/-15m) | partial | 53 | -0.28R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
-| cross-asset (+/-15m) | diverge | 45 | -0.52R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
+| cross-asset (+/-15m) | all_confirm | 106 | -0.16R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
+| cross-asset (+/-15m) | partial | 61 | -0.35R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
+| cross-asset (+/-15m) | diverge | 48 | -0.54R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
 | cross-asset (+/-15m) | not labelled (missing/pending) | 0 |  | INCONCLUSIVE (n<30) |
 | cross-asset, fresh breaks only | all_confirm | 27 | -0.21R | INCONCLUSIVE (n<30) |
-| cross-asset, fresh breaks only | partial | 32 | -0.34R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
-| cross-asset, fresh breaks only | diverge | 140 | -0.26R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
-| strength switch | strength_switch = true | 82 | -0.33R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
-| strength switch | strength_switch = false | 117 | -0.22R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
+| cross-asset, fresh breaks only | partial | 36 | -0.36R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
+| cross-asset, fresh breaks only | diverge | 152 | -0.30R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
+| strength switch | strength_switch = true | 90 | -0.37R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
+| strength switch | strength_switch = false | 125 | -0.25R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
 
-## Captain v3 official paper trades: 40 resolved
-(daily tags built from bars received on time ('live'): 10; event tags live: 37; the rest are reconstructed from backfilled bars)
+## Captain v3 official paper trades: 43 resolved
+(daily tags built from bars received on time ('live'): 10; event tags live: 40; the rest are reconstructed from backfilled bars)
 
 | Group | Cell | n | Mean net R | Verdict |
 |---|---|---:|---:|---|
-| all | all resolved | 40 | -0.45R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
+| all | all resolved | 43 | -0.48R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
 | 6AM 4h candle | clean & aligned with signal | 9 | -0.27R | INCONCLUSIVE (n<30) |
 | 6AM 4h candle | clean & opposed to signal | 3 | -0.40R | INCONCLUSIVE (n<30) |
-| 6AM 4h candle | not clean | 28 | -0.51R | INCONCLUSIVE (n<30) |
+| 6AM 4h candle | not clean | 31 | -0.55R | EARLY (n>=30 but ~2 weeks, one regime; no conclusion) |
 | 6AM 4h candle | no tag | 0 |  | INCONCLUSIVE (n<30) |
-| session profile | london_reversed_asia = true (continuation day) | 19 | -0.53R | INCONCLUSIVE (n<30) |
-| session profile | london_reversed_asia = false (reversal day) | 21 | -0.38R | INCONCLUSIVE (n<30) |
+| session profile | london_reversed_asia = true (continuation day) | 21 | -0.55R | INCONCLUSIVE (n<30) |
+| session profile | london_reversed_asia = false (reversal day) | 22 | -0.41R | INCONCLUSIVE (n<30) |
 | session profile | unlabelled (flat/missing) | 0 |  | INCONCLUSIVE (n<30) |
-| cross-asset (+/-15m) | all_confirm | 23 | -0.40R | INCONCLUSIVE (n<30) |
-| cross-asset (+/-15m) | partial | 5 | -0.05R | INCONCLUSIVE (n<30) |
+| cross-asset (+/-15m) | all_confirm | 24 | -0.43R | INCONCLUSIVE (n<30) |
+| cross-asset (+/-15m) | partial | 7 | -0.26R | INCONCLUSIVE (n<30) |
 | cross-asset (+/-15m) | diverge | 12 | -0.72R | INCONCLUSIVE (n<30) |
 | cross-asset (+/-15m) | not labelled (missing/pending) | 0 |  | INCONCLUSIVE (n<30) |
 | cross-asset, fresh breaks only | all_confirm | 6 | -0.36R | INCONCLUSIVE (n<30) |
-| cross-asset, fresh breaks only | partial | 7 | -0.37R | INCONCLUSIVE (n<30) |
-| cross-asset, fresh breaks only | diverge | 27 | -0.49R | INCONCLUSIVE (n<30) |
-| strength switch | strength_switch = true | 14 | -0.73R | INCONCLUSIVE (n<30) |
-| strength switch | strength_switch = false | 26 | -0.30R | INCONCLUSIVE (n<30) |
+| cross-asset, fresh breaks only | partial | 9 | -0.46R | INCONCLUSIVE (n<30) |
+| cross-asset, fresh breaks only | diverge | 28 | -0.51R | INCONCLUSIVE (n<30) |
+| strength switch | strength_switch = true | 16 | -0.76R | INCONCLUSIVE (n<30) |
+| strength switch | strength_switch = false | 27 | -0.32R | INCONCLUSIVE (n<30) |
 
