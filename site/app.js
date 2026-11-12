@@ -197,7 +197,13 @@
   function renderB() {
     var s = fs.value, t = ft.value, k = q.value.trim().toLowerCase(), L = [];
     B.forEach(function (b) { var o = s ? b.sports[s] : b.o; if (!o || !o.g) return; if (t && o.v !== t) return; if (k && b.name.toLowerCase().indexOf(k) < 0) return; L.push([b, o]); });
-    L.sort(function (x, y) { return rankCmp(x[1], y[1]); });
+    L.sort(function (x, y) {
+      if (sortCol != null) { var a = sortVal(x, sortCol), b2 = sortVal(y, sortCol);
+        if (a == null && b2 != null) return 1; if (b2 == null && a != null) return -1;
+        if (a != null && b2 != null && a !== b2) return (a < b2 ? -1 : 1) * sortDir; }
+      return rankCmp(x[1], y[1]);
+    });
+    markSort();
     var lim = showAll || k ? L.length : 15, h = '';
     L.slice(0, lim).forEach(function (r, j) {
       var b = r[0], o = r[1], safe = b.x && /^https:\/\/x\.com\//.test(b.x), tag = { kyle: 'you', kyle_seed: 'seeded', sc: 'agent' }[b.kind], v = VB[o.v] || VB.small;
@@ -212,10 +218,40 @@
     $('bcount').textContent = 'Showing ' + Math.min(lim, L.length) + ' of ' + L.length + (s ? ' in ' + s.toUpperCase() : '') + '. Tap a row for picks.';
     more.textContent = showAll ? 'Show top 15' : 'Show all';
   }
+  // ---------- tap a column header to sort (tap again to flip, third tap resets) ----------
+  var sortCol = null, sortDir = -1, VR = { follow: 0, fade: 1, neutral: 2, small: 3 };
+  function sortVal(r, c) {
+    var b = r[0], o = r[1];
+    switch (c) {
+      case 1: return b.name.toLowerCase().replace(/^@/, '');
+      case 2: return o.g; case 3: return o.w; case 4: return o.wp; case 5: return o.roi; case 6: return o.clv;
+      case 7: return (o.aw || o.al) ? o.aw / (o.aw + o.al) : null;
+      case 8: return o.froi; case 9: return o.v in VR ? VR[o.v] : 3; case 10: return o.sp.join(' ');
+      case 11: return o.last || null;
+    }
+    return null;
+  }
+  function markSort() {
+    var ths = document.querySelectorAll('#btable thead th');
+    for (var c = 0; c < ths.length; c++) {
+      var th = ths[c]; if (th.dataset.lab == null) th.dataset.lab = th.textContent;
+      th.style.cursor = c ? 'pointer' : ''; th.title = c ? 'Tap to sort' : '';
+      th.textContent = th.dataset.lab + (c === sortCol ? (sortDir < 0 ? ' ▼' : ' ▲') : '');
+    }
+  }
   function fail() { $('bcount').innerHTML = chip('could not load ledger.json', 'bad') + ' Open the page over http(s), not from a file.'; }
   [q, fs, ft].forEach(function (el) { el.addEventListener(el === q ? 'input' : 'change', function () { need().then(renderB).catch(fail); }); });
   more.addEventListener('click', function () { showAll = !showAll; need().then(renderB).catch(fail); });
   $('btable').addEventListener('click', function (e) {
+    var th = e.target.closest('thead th');
+    if (th) {
+      var c = Array.prototype.indexOf.call(th.parentNode.children, th); if (c < 1) return;
+      var asc = c === 1 || c === 9 || c === 10;
+      if (sortCol !== c) { sortCol = c; sortDir = asc ? 1 : -1; }
+      else if (sortDir === (asc ? 1 : -1)) sortDir = -sortDir;
+      else sortCol = null;
+      need().then(renderB).catch(fail); return;
+    }
     var tr = e.target.closest('tbody tr'); if (!tr || tr.classList.contains('det') || e.target.closest('a')) return;
     var rank = +tr.children[0].textContent;
     need().then(function () {
