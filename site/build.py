@@ -397,8 +397,17 @@ def main():
           f'{"correlations stressed halfway to 1 (high volatility)" if C["stress"] else "no correlation stress"}; shrinkage 0.3.</p></details>'
         + "<details><summary>Session-close forecast (reported only, never drives the action)</summary>"
         + table([("Asset", ""), ("P up >+0.5%", "n"), ("P range", "n"), ("P down", "n"), ("Conformal set", ""), ("Target", "n")], C["sc_rows"]) + "</details>")
-    crypto_html += (f'{box["morning_tags_html"] or ""}<p class="muted"><b>Open paper positions:</b> {re.sub(r"</?p>", "", box["open_positions_html"] or "–")} '
-                    f'<b>Captain v3.1.1:</b> frozen and separate; this page reads it and never writes to it.</p>'
+    # open_positions_html is a bare <p> when flat, or a table plus <p class="muted">
+    # when a paper trade is open. re.sub(r"</?p>", ...) only strips exact <p>/</p>, so
+    # <p class="muted"> was left open and a table was nested inside a <p>.
+    oph = (box["open_positions_html"] or "–")
+    v3note = "<b>Captain v3.1.1:</b> frozen and separate; this page reads it and never writes to it."
+    if re.search(r"<(?:div|table)\b", oph):
+        open_block = f'<p class="muted"><b>Open paper positions:</b></p>{oph}<p class="muted">{v3note}</p>'
+    else:
+        inner = re.sub(r"</?p(?:\s[^>]*)?>", "", oph).strip()
+        open_block = f'<p class="muted"><b>Open paper positions:</b> {inner} {v3note}</p>'
+    crypto_html += (f'{box["morning_tags_html"] or ""}{open_block}'
                     f'<p class="muted">Reproduce: commit <a href="{REPO}/commit/{commit}"><code>{commit[:12]}</code></a> · run <code>{r["run_id"]}</code> · cutoff <code>{r["cutoff_ts"]}</code> · '
                     f'knowledge <code>{r["knowledge_ts"]}</code> · config <code>{r["config_hash"][:12]}</code> {"✓" if ck["config_hash_matches_repo"] else "✗"} · '
                     f'code <code>{r["code_hash"][:12]}</code> {"✓" if ck["code_hash_matches_repo"] else "✗"} · record sha256 <code>{C["sha"][:12]}</code></p>')
